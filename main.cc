@@ -156,6 +156,7 @@ int main(int argc, char** argv)
     real_t aw = std::sqrt(air.get_gamma()*air.get_R()*Twall);
     real_t u0 = 800*std::sqrt(tau_wall*rho_b);
 
+    const int nmode = 11;
     using point_type = decltype(grid)::coord_point_type;
     auto ini = [&](const point_type& x) -> prim_t
     {
@@ -166,6 +167,28 @@ int main(int argc, char** argv)
         output.u() = (3.0/2.0)*u0*(1.0-yh*yh);
         output.v() = 0;
         output.w() = 0;
+
+        real_t up = 0.0;
+        real_t vp = 0.0;
+        real_t wp = 0.0;
+        int imin = 1;
+        for (int ii = imin; ii < imin + nmode; ++ii)
+        {
+            real_t ampl = 0.1*u0*(1.0-yh*yh)/(ii*ii);
+            real_t freq_x = 2.0*spade::consts::pi*ii/(0.5*bounds.max(0));
+            real_t freq_y = 2.0*spade::consts::pi*ii/(0.5*delta);
+            real_t freq_z = 2.0*spade::consts::pi*ii/(0.5*bounds.max(2));
+            real_t phase_x = std::sin(14*ii)*2.0*spade::consts::pi;
+            real_t phase_y = std::sin(10*ii)*2.0*spade::consts::pi;
+            real_t phase_z = std::sin(17*ii)*2.0*spade::consts::pi;
+            up += ampl*std::sin(freq_x*x[0]-phase_x)*std::sin(freq_y*x[1]+phase_x)*std::sin(freq_z*x[2]-phase_x);
+            vp += ampl*std::sin(freq_x*x[0]+phase_y)*std::sin(freq_y*x[1]-phase_y)*std::sin(freq_z*x[2]+phase_y);
+            wp += ampl*std::sin(freq_x*x[0]-phase_z)*std::sin(freq_y*x[1]+phase_z)*std::sin(freq_z*x[2]-phase_z);
+        }
+
+        output.u() += up;
+        output.v() += vp;
+        output.w() += wp;
         
         return output;
     };

@@ -28,7 +28,7 @@ endif
 main:
 	${MAKE} -C ${HYWALL_PATH} -f makefile
 	${cc} --version
-	${cc} -std=c++20 -g -O3 ${flags} ${compflags} -I${spade} -I${PTL}/include -I${HYWALL_PATH}/include main.cc -o ${target} -L${PTL}/lib -lPTL -L${HYWALL_PATH}/lib -lHyWall
+	${cc} -std=c++20 -g -O3 ${flags} ${compflags} -I${spade}/src -I${PTL}/include -I${HYWALL_PATH}/include main.cc -o ${target} -L${PTL}/lib -lPTL -L${HYWALL_PATH}/lib -lHyWall
 
 run: main
 	./${target}

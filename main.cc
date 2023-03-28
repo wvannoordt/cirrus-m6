@@ -97,13 +97,13 @@ int main(int argc, char** argv)
     real_t                mu_wall  = input["Fluid"]["mu_wall"];
     real_t                tau_wall = input["Fluid"]["tau_wall"];
     real_t                rho_b    = input["Fluid"]["rho_b"];
+    bool                  perturb  = input["Fluid"]["perturb"];
     real_t                rgas     = input["WallModel"]["gasConstant"];
     real_t                fluidCp  = input["WallModel"]["fluidCp"];
     
     
     real_t                eps_p  = input["Num"]["eps_p"];
     real_t                eps_T  = input["Num"]["eps_T"];
-    bool              wm_enable  = input["Num"]["wm_enable"];
 
     std::string        init_file = input["IO"]["init_file"];
     std::string        out_dir   = input["IO"]["out_dir"];
@@ -167,28 +167,30 @@ int main(int argc, char** argv)
         output.u() = (3.0/2.0)*u0*(1.0-yh*yh);
         output.v() = 0;
         output.w() = 0;
-
-        real_t up = 0.0;
-        real_t vp = 0.0;
-        real_t wp = 0.0;
-        int imin = 1;
-        for (int ii = imin; ii < imin + nmode; ++ii)
+        if (perturb)
         {
-            real_t ampl = 0.1*u0*(1.0-yh*yh)/(ii*ii);
-            real_t freq_x = 2.0*spade::consts::pi*ii/(0.5*bounds.max(0));
-            real_t freq_y = 2.0*spade::consts::pi*ii/(0.5*delta);
-            real_t freq_z = 2.0*spade::consts::pi*ii/(0.5*bounds.max(2));
-            real_t phase_x = std::sin(14*ii)*2.0*spade::consts::pi;
-            real_t phase_y = std::sin(10*ii)*2.0*spade::consts::pi;
-            real_t phase_z = std::sin(17*ii)*2.0*spade::consts::pi;
-            up += ampl*std::sin(freq_x*x[0]-phase_x)*std::sin(freq_y*x[1]+phase_x)*std::sin(freq_z*x[2]-phase_x);
-            vp += ampl*std::sin(freq_x*x[0]+phase_y)*std::sin(freq_y*x[1]-phase_y)*std::sin(freq_z*x[2]+phase_y);
-            wp += ampl*std::sin(freq_x*x[0]-phase_z)*std::sin(freq_y*x[1]+phase_z)*std::sin(freq_z*x[2]-phase_z);
-        }
+            real_t up = 0.0;
+            real_t vp = 0.0;
+            real_t wp = 0.0;
+            int imin = 1;
+            for (int ii = imin; ii < imin + nmode; ++ii)
+            {
+                real_t ampl = 0.1*u0*(1.0-yh*yh)/(ii*ii);
+                real_t freq_x = 2.0*spade::consts::pi*ii/(0.5*bounds.max(0));
+                real_t freq_y = 2.0*spade::consts::pi*ii/(0.5*delta);
+                real_t freq_z = 2.0*spade::consts::pi*ii/(0.5*bounds.max(2));
+                real_t phase_x = std::sin(14*ii)*2.0*spade::consts::pi;
+                real_t phase_y = std::sin(10*ii)*2.0*spade::consts::pi;
+                real_t phase_z = std::sin(17*ii)*2.0*spade::consts::pi;
+                up += ampl*std::sin(freq_x*x[0]-phase_x)*std::sin(freq_y*x[1]+phase_x)*std::sin(freq_z*x[2]-phase_x);
+                vp += ampl*std::sin(freq_x*x[0]+phase_y)*std::sin(freq_y*x[1]-phase_y)*std::sin(freq_z*x[2]+phase_y);
+                wp += ampl*std::sin(freq_x*x[0]-phase_z)*std::sin(freq_y*x[1]+phase_z)*std::sin(freq_z*x[2]-phase_z);
+            }
 
-        output.u() += up;
-        output.v() += vp;
-        output.w() += wp;
+            output.u() += up;
+            output.v() += vp;
+            output.w() += wp;
+        }
         
         return output;
     };
@@ -295,6 +297,7 @@ int main(int argc, char** argv)
     
     spade::timing::mtimer_t tmr("advance");
     std::ofstream myfile("hist.dat");
+    std::ofstream myfile2("visc.dat");
     for (auto nt: range(0, nt_max+1))
     {
         const real_t umax   = spade::algs::transform_reduce(time_int.solution(), get_u, max_op);
@@ -315,6 +318,14 @@ int main(int argc, char** argv)
             );
             myfile << nt << " " << cfl << " " << umax << " " << ub << " " << rhob << " " << dx << " " << dt << std::endl;
             myfile.flush();
+        }
+        auto tau_avg = wall_model.mean_tau();
+        auto qw_avg  = wall_model.mean_qw ();
+        if (group.isroot())
+        {
+            print("Mean shear/heat:", tau_avg, qw_avg);
+            myfile2 << time_int.time() << " " << tau_avg << " " << qw_avg << "\n";
+            myfile2.flush();
         }
         if (nt%nt_skip == 0)
         {

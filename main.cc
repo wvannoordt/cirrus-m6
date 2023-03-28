@@ -45,6 +45,7 @@ void set_channel_slip(auto& prims)
                         const auto n_d = calc_normal_vector(grid.coord_sys(), x_d, i_d, 1);
                         q_g.p()   =  q_d.p();
                         q_g.T()   =  q_d.T();
+                        //q_g.u()   = -q_d.u();
                         q_g.u()   =  q_d.u();
                         q_g.v()   = -q_d.v()*n_d[1]/n_g[1];
                         q_g.w()   =  q_d.w();
@@ -60,7 +61,7 @@ void set_channel_slip(auto& prims)
 int main(int argc, char** argv)
 {
     spade::parallel::mpi_t group(&argc, &argv);
-    const std::size_t dim = 3;
+    const std::size_t dim = 2;
 
     std::string input_filename = "none";
     for (auto i: range(0, argc))
@@ -92,14 +93,15 @@ int main(int argc, char** argv)
     int        checkpoint_skip  = input["Time"]["ck_skip"];
     bool       output_timing    = input["Time"]["output_timing"];
     
-    real_t                Twall    = input["WallModel"]["wallTemperature"];
-    real_t                prandtl  = input["WallModel"]["fluidPrandtl"];
-    real_t                mu_wall  = input["Fluid"]["mu_wall"];
-    real_t                tau_wall = input["Fluid"]["tau_wall"];
-    real_t                rho_b    = input["Fluid"]["rho_b"];
-    bool                  perturb  = input["Fluid"]["perturb"];
-    real_t                rgas     = input["WallModel"]["gasConstant"];
-    real_t                fluidCp  = input["WallModel"]["fluidCp"];
+    real_t   Twall     = input["WallModel"]["wallTemperature"];
+    real_t   prandtl   = input["WallModel"]["fluidPrandtl"];
+    real_t   mu_wall   = input["Fluid"]["mu_wall"];
+    real_t   tau_wall  = input["Fluid"]["tau_wall"];
+    real_t   rho_b     = input["Fluid"]["rho_b"];
+    bool     perturb   = input["Fluid"]["perturb"];
+    bool     wm_enable = input["Fluid"]["wm_enable"];
+    real_t   rgas      = input["WallModel"]["gasConstant"];
+    real_t   fluidCp   = input["WallModel"]["fluidCp"];
     
     
     real_t                eps_p  = input["Num"]["eps_p"];
@@ -163,8 +165,10 @@ int main(int argc, char** argv)
         real_t yh = x[1]/delta;
         prim_t output;
         output.p() = p0;
-        output.T() = Tref - (Tref - Twall)*yh*yh;
-        output.u() = (3.0/2.0)*u0*(1.0-yh*yh);
+        // output.T() = Tref - (Tref - Twall)*yh*yh;
+        // output.u() = (3.0/2.0)*u0*(1.0-yh*yh);
+        output.T() = Tref;
+        output.u() = u0;
         output.v() = 0;
         output.w() = 0;
         if (perturb)
@@ -278,11 +282,18 @@ int main(int argc, char** argv)
     {
         rhsin = 0.0;
         spade::pde_algs::flux_div(qin, rhsin, tscheme, dscheme);
-        auto policy = spade::pde_algs::block_flux_all;
-        spade::pde_algs::flux_div(qin, rhsin, policy, boundary, visc_scheme);
-        wall_model.sample(qin, visc_law);
-        wall_model.solve();
-        wall_model.apply_flux(rhsin);
+        if (wm_enable)
+        {
+            auto policy = spade::pde_algs::block_flux_all;
+            spade::pde_algs::flux_div(qin, rhsin, policy, boundary, visc_scheme);
+            wall_model.sample(qin, visc_law);
+            wall_model.solve();
+            wall_model.apply_flux(rhsin);
+        }
+        else
+        {
+            spade::pde_algs::flux_div(qin, rhsin, visc_scheme);
+        }
         spade::pde_algs::source_term(qin, rhsin, source);
     };
     

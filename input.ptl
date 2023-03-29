@@ -7,7 +7,8 @@ Grid
 }
 Time
 {
-    cfl           = 0.65
+    //cfl           = 0.65
+    cfl           = 3.65
     nt_max        = 140000
     nt_skip       = 500
     ck_skip       = 500

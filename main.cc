@@ -282,7 +282,7 @@ int main(int argc, char** argv)
     auto calc_rhs = [&](auto& rhsin, const auto& qin, const auto& tin) -> void
     {
         rhsin = 0.0;
-        // spade::pde_algs::flux_div(qin, rhsin, tscheme, dscheme);
+        spade::pde_algs::flux_div(qin, rhsin, tscheme, dscheme);
         if (wm_enable)
         {
             auto policy = spade::pde_algs::block_flux_all;

@@ -1,13 +1,14 @@
 Grid
 {
-    num_blocks = [16, 2, 6]
-    num_cells  = [32, 64, 16]
+    num_blocks = [8, 2, 2]
+    num_cells  = [72, 72, 16]
     num_exchg  = [2, 2, 2]
     dims       = [0.0, 12.0, -1.0, 1.0, 0.0, 5.0]
 }
 Time
 {
-    cfl           = 0.75
+    //cfl           = 0.65
+    cfl           = 3.65
     nt_max        = 140000
     nt_skip       = 500
     ck_skip       = 500
@@ -20,17 +21,22 @@ IO
 }
 Fluid
 {
+    //mu_wall    = 3e-4
+    //tau_wall   = 20.06
     mu_wall    = 3e-4
-    tau_wall   = 20.06
+    tau_wall   = 1.58
     gamma      = 1.4
     rgas       = 287.15
     rho_b      = 4.99e-3
-    perturb    = true
+    perturb    = false
+    wm_enable  = true
 }
 Num
 {
-    eps_p      = 0.00025
-    eps_T      = 0.00025
+    eps_p      = 0.025
+    eps_T      = 0.025
+    //eps_p      = 0.00025
+    //eps_T      = 0.00025
 }
 WallModel
 {

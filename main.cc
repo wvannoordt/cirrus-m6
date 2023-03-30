@@ -64,7 +64,7 @@ void set_channel_slip(auto& prims, const auto& twall, const bool wm_enable)
 int main(int argc, char** argv)
 {
     spade::parallel::mpi_t group(&argc, &argv);
-    const std::size_t dim = 2;
+    const std::size_t dim = 3;
 
     std::string input_filename = "none";
     for (auto i: range(0, argc))

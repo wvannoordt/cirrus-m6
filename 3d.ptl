@@ -25,7 +25,9 @@ Fluid
     gamma      = 1.4
     rgas       = 287.15
     rho_b      = 4.99e-3
-    perturb    = true
+    perturb    = false
+    const_init = false
+    wm_enable  = true
 }
 Num
 {

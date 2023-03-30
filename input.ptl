@@ -30,11 +30,12 @@ Fluid
     rho_b      = 4.99e-3
     perturb    = false
     wm_enable  = true
+    const_init = true
 }
 Num
 {
-    eps_p      = 0.025
-    eps_T      = 0.025
+    eps_p      = 0.0
+    eps_T      = 0.0
     //eps_p      = 0.00025
     //eps_T      = 0.00025
 }

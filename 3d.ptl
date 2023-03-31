@@ -7,7 +7,7 @@ Grid
 }
 Time
 {
-    cfl           = 0.75
+    cfl           = 0.65
     nt_max        = 140000
     nt_skip       = 500
     ck_skip       = 500
@@ -15,24 +15,25 @@ Time
 }
 IO
 {
-    init_file     = none
-    out_dir       = test
+    init_file     = test/checkpoint/check00005000.bin
+    out_dir       = test2
 }
 Fluid
 {
-    mu_wall    = 3e-4
-    tau_wall   = 20.06
-    gamma      = 1.4
-    rgas       = 287.15
-    rho_b      = 4.99e-3
-    perturb    = false
-    const_init = false
-    wm_enable  = true
+    couple_dist = 3
+    mu_wall     = 3e-4
+    tau_wall    = 20.06
+    gamma       = 1.4
+    rgas        = 287.15
+    rho_b       = 4.99e-3
+    perturb     = true
+    const_init  = false
+    wm_enable   = true
 }
 Num
 {
-    eps_p      = 0.00025
-    eps_T      = 0.00025
+    eps_p      = 0.55
+    eps_T      = 0.55
 }
 WallModel
 {

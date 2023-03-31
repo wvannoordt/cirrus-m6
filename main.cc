@@ -96,16 +96,17 @@ int main(int argc, char** argv)
     int        checkpoint_skip  = input["Time"]["ck_skip"];
     bool       output_timing    = input["Time"]["output_timing"];
     
-    real_t   Twall      = input["WallModel"]["wallTemperature"];
-    real_t   prandtl    = input["WallModel"]["fluidPrandtl"];
-    real_t   mu_wall    = input["Fluid"]["mu_wall"];
-    real_t   tau_wall   = input["Fluid"]["tau_wall"];
-    real_t   rho_b      = input["Fluid"]["rho_b"];
-    bool     perturb    = input["Fluid"]["perturb"];
-    bool     wm_enable  = input["Fluid"]["wm_enable"];
-    bool     const_init = input["Fluid"]["const_init"];
-    real_t   rgas       = input["WallModel"]["gasConstant"];
-    real_t   fluidCp    = input["WallModel"]["fluidCp"];
+    real_t   Twall       = input["WallModel"]["wallTemperature"];
+    real_t   prandtl     = input["WallModel"]["fluidPrandtl"];
+    real_t   mu_wall     = input["Fluid"]["mu_wall"];
+    real_t   tau_wall    = input["Fluid"]["tau_wall"];
+    real_t   rho_b       = input["Fluid"]["rho_b"];
+    bool     perturb     = input["Fluid"]["perturb"];
+    bool     wm_enable   = input["Fluid"]["wm_enable"];
+    int      couple_dist = input["Fluid"]["couple_dist"];
+    bool     const_init  = input["Fluid"]["const_init"];
+    real_t   rgas        = input["WallModel"]["gasConstant"];
+    real_t   fluidCp     = input["WallModel"]["fluidCp"];
     
     
     real_t                eps_p  = input["Num"]["eps_p"];
@@ -272,7 +273,7 @@ int main(int argc, char** argv)
     boundary.min(1) = false;
     boundary.max(1) = false;
     
-    spade::proto::hywall_binding_t wall_model(prim, rhs, air);
+    spade::proto::hywall_binding_t wall_model(prim, rhs, air, couple_dist);
     wall_model.read(input["WallModel"]);
     for (auto& b: boundary) b = !b;
     wall_model.init(prim, boundary);

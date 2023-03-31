@@ -23,6 +23,7 @@ Fluid
 {
     //mu_wall    = 3e-4
     //tau_wall   = 20.06
+	couple_dist = 3
     mu_wall    = 3e-4
     tau_wall   = 1.58
     gamma      = 1.4

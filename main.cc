@@ -46,12 +46,11 @@ void set_channel_slip(auto& prims, const auto& twall, const bool wm_enable)
                         q_g.p()   =  q_d.p();
                         q_g.T()   =  q_d.T();
                         if (!wm_enable) q_g.T()   =  2.0*twall - q_d.T();
-                        // q_g.T()   =  2.0*twall - q_d.T();
                         q_g.u()   =  q_d.u();
                         if (!wm_enable) q_g.u()   = -q_d.u();
-                        // q_g.u()   = -q_d.u();
                         q_g.v()   = -q_d.v()*n_d[1]/n_g[1];
                         q_g.w()   =  q_d.w();
+						if (!wm_enable) q_g.w()   = -q_d.w();
                         for (auto n: range(0,5)) prims(n, i_g[0], i_g[1], i_g[2], i_g[3]) = q_g[n];
                     }
                 }

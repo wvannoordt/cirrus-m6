@@ -152,7 +152,11 @@ int main(int argc, char** argv)
     air.R = rgas;
     air.gamma = fluidCp/(fluidCp-rgas);
 
-    spade::viscous_laws::power_law_t visc_law(mu_wall, Twall, 0.76, prandtl, air);
+    const real_t delta_g = grid.get_dx(1);
+    const real_t cw = 0.55;
+    spade::viscous_laws::power_law_t lam_visc_law(mu_wall, Twall, 0.76, prandtl);
+    spade::subgrid_scale::wale_t eddy_visc   (air, cw, delta_g, 0.9);
+    spade::viscous_laws::sgs_visc_t visc_law(lam_visc_law, eddy_visc);
     
     const real_t Lx  = bounds.size(0);
     const real_t Lz  = bounds.size(2);
@@ -241,7 +245,7 @@ int main(int argc, char** argv)
     
     spade::convective::totani_lr        tscheme(air);
     spade::convective::pressure_diss_lr dscheme(air, eps_p, eps_T);
-    spade::viscous::visc_lr             visc_scheme(visc_law);
+    spade::viscous::visc_lr             visc_scheme(visc_law, air);
     
 
     auto get_u = [&](const prim_t& val){return std::sqrt(air.gamma*air.R*val.T()) + std::sqrt(val.u()*val.u() + val.v()*val.v() + val.w()*val.w());};
@@ -293,7 +297,7 @@ int main(int argc, char** argv)
         {
             auto policy = spade::pde_algs::block_flux_all;
             spade::pde_algs::flux_div(qin, rhsin, policy, boundary, visc_scheme);
-            wall_model.sample(qin, visc_law);
+            wall_model.sample(qin, lam_visc_law);
             wall_model.solve();
             wall_model.apply_flux(rhsin);
         }

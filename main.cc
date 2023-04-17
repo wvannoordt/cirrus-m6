@@ -113,6 +113,8 @@ int main(int argc, char** argv)
 
     std::string        init_file = input["IO"]["init_file"];
     std::string        out_dir   = input["IO"]["out_dir"];
+	std::string      hist_file   = input["IO"]["hist_file"];
+	std::string      visc_file   = input["IO"]["visc_file"];
     
     spade::coords::identity<real_t> coords;
     
@@ -320,8 +322,8 @@ int main(int argc, char** argv)
     boundary_cond(time_int.solution(), time0);
     
     spade::timing::mtimer_t tmr("advance");
-    std::ofstream myfile("hist.dat");
-    std::ofstream myfile2("visc.dat");
+    std::ofstream myfile(hist_file);
+    std::ofstream myfile2(visc_file);
     for (auto nt: range(0, nt_max+1))
     {
         const real_t umax   = spade::algs::transform_reduce(time_int.solution(), get_u, max_op);

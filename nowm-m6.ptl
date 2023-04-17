@@ -17,6 +17,8 @@ IO
 {
     init_file     = none
     out_dir       = m6
+	visc_file     = visc-m6.dat
+	hist_file     = hist-m6.dat
 }
 Fluid
 {

@@ -9,22 +9,22 @@ Time
 {
     cfl           = 0.65
     nt_max        = 140000
-    nt_skip       = 500
+    nt_skip       = 1500
     ck_skip       = 500
     output_timing = false
 }
 IO
 {
-    init_file     = none
-    out_dir       = m3
-	visc_file     = visc-m3.dat
-	hist_file     = hist-m3.dat
+	init_file     = none
+    out_dir       = data_c4
+	visc_file     = visc-c4.dat
+	hist_file     = hist-c4.dat
 }
 Fluid
 {
     couple_dist = 3
-    mu_wall     = 3.5e-4
-    tau_wall    = 7.73
+    mu_wall     = 3e-4
+    tau_wall    = 20.06
     gamma       = 1.4
     rgas        = 287.15
     rho_b       = 4.99e-3
@@ -34,8 +34,9 @@ Fluid
 }
 Num
 {
-    eps_p      = 0.55
-    eps_T      = 0.55
+    eps_p      = 0.6
+    eps_T      = 0.0
+	wale_cw    = 0.15
 }
 WallModel
 {

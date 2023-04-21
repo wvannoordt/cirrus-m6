@@ -88,7 +88,8 @@ int main(int argc, char** argv)
     std::vector<int>    ncell    = input["Grid"]["num_cells"];
     std::vector<int>    nexg     = input["Grid"]["num_exchg"];
     std::vector<real_t> bbox     = input["Grid"]["dims"];
-    
+
+	int        nt_backup        = 10;
     real_t     targ_cfl         = input["Time"]["cfl"];
     int        nt_max           = input["Time"]["nt_max"];
     int        nt_skip          = input["Time"]["nt_skip"];
@@ -110,6 +111,7 @@ int main(int argc, char** argv)
     
     real_t                eps_p  = input["Num"]["eps_p"];
     real_t                eps_T  = input["Num"]["eps_T"];
+	real_t                cw     = input["Num"]["wale_cw"];
 
     std::string        init_file = input["IO"]["init_file"];
     std::string        out_dir   = input["IO"]["out_dir"];
@@ -147,7 +149,8 @@ int main(int argc, char** argv)
     prim_t fill1 = 0.0;
     flux_t fill2 = 0.0;
     
-    spade::grid::grid_array prim (grid, fill1);
+    spade::grid::grid_array prim       (grid, fill1);
+	spade::grid::grid_array prim_crash (grid, fill1);
     spade::grid::grid_array rhs (grid, fill2);
     
     spade::fluid_state::ideal_gas_t<real_t> air;
@@ -155,7 +158,6 @@ int main(int argc, char** argv)
     air.gamma = fluidCp/(fluidCp-rgas);
 
     const real_t delta_g = grid.get_dx(1);
-    const real_t cw = 0.55;
     spade::viscous_laws::power_law_t lam_visc_law(mu_wall, Twall, 0.76, prandtl);
     spade::subgrid_scale::wale_t eddy_visc   (air, cw, delta_g, 0.9);
     spade::viscous_laws::sgs_visc_t visc_law(lam_visc_law, eddy_visc);
@@ -370,17 +372,26 @@ int main(int argc, char** argv)
             spade::io::binary_write(filename, time_int.solution());
             if (group.isroot()) print("Done.");
         }
+		if (nt%nt_backup == 0)
+		{
+		  if (group.isroot()) print("Create backup...");
+		  prim_crash = time_int.solution();
+		  if (group.isroot()) print("Done"); 
+		}
         tmr.start("advance");
         time_int.advance();
         tmr.stop ("advance");
         if (group.isroot()) print(tmr);
-        if (std::isnan(umax))
+        if (std::isnan(umax) || std::isnan(rhob))
         {
             if (group.isroot())
             {
                 print("A tragedy has occurred!");
+				print("Saving crash file...");
             }
             group.sync();
+			spade::io::output_vtk(data_out, "crash", prim_crash);
+			if (group.isroot()) print("See ya later");
             return 155;
         }
     }

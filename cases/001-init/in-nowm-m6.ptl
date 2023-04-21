@@ -15,7 +15,8 @@ Time
 }
 IO
 {
-    init_file     = none
+    //init_file     = ./init/im6.bin
+	init_file     = none
     out_dir       = m6
 	visc_file     = visc-m6.dat
 	hist_file     = hist-m6.dat
@@ -34,8 +35,9 @@ Fluid
 }
 Num
 {
-    eps_p      = 0.55
-    eps_T      = 0.55
+    eps_p      = 0.4
+    eps_T      = 0.0
+	wale_cw    = 0.2
 }
 WallModel
 {

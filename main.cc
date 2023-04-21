@@ -1,4 +1,5 @@
 #include <chrono>
+#include <stdexcept>
 #include "spade.h"
 #include "proto/hywall_interop.h"
 
@@ -11,6 +12,21 @@ static inline bool ends_with(std::string const & value, std::string const & endi
 {
     if (ending.size() > value.size()) return false;
     return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+
+static int ids_impl(int ct, const std::string& v)
+{
+    throw std::invalid_argument( "received invlid value" );
+    return -1;
+}
+template <typename str_t, typename... strs_t> static int ids_impl(int ct, const std::string& v, const str_t& k, const strs_t&... ks)
+{
+    if (k==v) return ct;
+    return ids_impl(ct+1, v, ks...);
+}
+template <typename... strs_t> static int id_search(const std::string& v, const strs_t&... ks)
+{
+    return ids_impl(0, v, ks...);
 }
 
 void set_channel_slip(auto& prims, const auto& twall, const bool wm_enable)
@@ -96,17 +112,24 @@ int main(int argc, char** argv)
     int        checkpoint_skip  = input["Time"]["ck_skip"];
     bool       output_timing    = input["Time"]["output_timing"];
     
-    real_t   Twall       = input["WallModel"]["wallTemperature"];
-    real_t   prandtl     = input["WallModel"]["fluidPrandtl"];
-    real_t   mu_wall     = input["Fluid"]["mu_wall"];
-    real_t   tau_wall    = input["Fluid"]["tau_wall"];
-    real_t   rho_b       = input["Fluid"]["rho_b"];
-    bool     perturb     = input["Fluid"]["perturb"];
-    bool     wm_enable   = input["Fluid"]["wm_enable"];
-    int      couple_dist = input["Fluid"]["couple_dist"];
-    bool     const_init  = input["Fluid"]["const_init"];
-    real_t   rgas        = input["WallModel"]["gasConstant"];
-    real_t   fluidCp     = input["WallModel"]["fluidCp"];
+    real_t   Twall         = input["WallModel"]["wallTemperature"];
+    real_t   prandtl       = input["WallModel"]["fluidPrandtl"];
+    real_t   mu_wall       = input["Fluid"]["mu_wall"];
+    real_t   tau_wall      = input["Fluid"]["tau_wall"];
+    real_t   rho_b         = input["Fluid"]["rho_b"];
+
+    enum perturb_type
+    {
+        perturb_none = 0,
+        perturb_freq = 1,
+        perturb_rand = 2
+    } ptype = (perturb_type)id_search(std::string(input["Fluid"]["perturb"]), "none", "freq", "rand");
+    
+    bool     wm_enable     = input["Fluid"]["wm_enable"];
+    int      couple_dist   = input["Fluid"]["couple_dist"];
+    bool     const_init    = input["Fluid"]["const_init"];
+    real_t   rgas          = input["WallModel"]["gasConstant"];
+    real_t   fluidCp       = input["WallModel"]["fluidCp"];
     
     
     real_t                eps_p  = input["Num"]["eps_p"];
@@ -186,35 +209,67 @@ int main(int argc, char** argv)
         }
         output.v() = 0;
         output.w() = 0;
-        if (perturb)
-        {
-            real_t up = 0.0;
-            real_t vp = 0.0;
-            real_t wp = 0.0;
-            int imin = 1;
-            for (int ii = imin; ii < imin + nmode; ++ii)
-            {
-                real_t ampl = 0.1*u0*(1.0-yh*yh)/(ii*ii);
-                real_t freq_x = 2.0*spade::consts::pi*ii/(0.5*bounds.max(0));
-                real_t freq_y = 2.0*spade::consts::pi*ii/(0.5*delta);
-                real_t freq_z = 2.0*spade::consts::pi*ii/(0.5*bounds.max(2));
-                real_t phase_x = std::sin(14*ii)*2.0*spade::consts::pi;
-                real_t phase_y = std::sin(10*ii)*2.0*spade::consts::pi;
-                real_t phase_z = std::sin(17*ii)*2.0*spade::consts::pi;
-                up += ampl*std::sin(freq_x*x[0]-phase_x)*std::sin(freq_y*x[1]+phase_x)*std::sin(freq_z*x[2]-phase_x);
-                vp += ampl*std::sin(freq_x*x[0]+phase_y)*std::sin(freq_y*x[1]-phase_y)*std::sin(freq_z*x[2]+phase_y);
-                wp += ampl*std::sin(freq_x*x[0]-phase_z)*std::sin(freq_y*x[1]+phase_z)*std::sin(freq_z*x[2]-phase_z);
-            }
-
-            output.u() += up;
-            output.v() += vp;
-            output.w() += wp;
-        }
         
         return output;
     };
-    
+
+    auto freq_perturb_func = [&](const prim_t& val, const point_type& x)
+    {
+        real_t up = 0.0;
+        real_t vp = 0.0;
+        real_t wp = 0.0;
+        real_t yh = x[1]/delta;
+        int imin = 1;
+        for (int ii = imin; ii < imin + nmode; ++ii)
+        {
+            real_t ampl   = 0.1*u0*(1.0-yh*yh)/(ii*ii);
+            real_t freq_x = 2.0*spade::consts::pi*ii/(0.5*bounds.max(0));
+            real_t freq_y = 2.0*spade::consts::pi*ii/(0.5*delta);
+            real_t freq_z = 2.0*spade::consts::pi*ii/(0.5*bounds.max(2));
+            real_t phase_x = std::sin(14*ii)*2.0*spade::consts::pi;
+            real_t phase_y = std::sin(10*ii)*2.0*spade::consts::pi;
+            real_t phase_z = std::sin(17*ii)*2.0*spade::consts::pi;
+            up += ampl*std::sin(freq_x*x[0]-phase_x)*std::sin(freq_y*x[1]+phase_x)*std::sin(freq_z*x[2]-phase_x);
+            vp += ampl*std::sin(freq_x*x[0]+phase_y)*std::sin(freq_y*x[1]-phase_y)*std::sin(freq_z*x[2]+phase_y);
+            wp += ampl*std::sin(freq_x*x[0]-phase_z)*std::sin(freq_y*x[1]+phase_z)*std::sin(freq_z*x[2]-phase_z);
+        }
+        prim_t output = val;
+        output.u() += up;
+        output.v() += vp;
+        output.w() += wp;
+        return output;
+    };
+
+    std::vector<int> glob(grid.get_partition().get_num_local_blocks());
+    for (auto i: range(0, glob.size())) glob[i] = grid.get_partition().get_global_block(i);
+    spade::utils::random_seed(1234);
+    std::vector<real_t> u_perturb(grid.get_partition().get_num_global_blocks());
+    std::vector<real_t> v_perturb(grid.get_partition().get_num_global_blocks());
+    std::vector<real_t> w_perturb(grid.get_partition().get_num_global_blocks());
+
+    const real_t perturb_ampl = 0.15*u0;
+    std::generate(u_perturb.begin(), u_perturb.end(), [&](){return perturb_ampl*(1.0-2.0*spade::utils::unitary_random());});
+    std::generate(v_perturb.begin(), v_perturb.end(), [&](){return perturb_ampl*(1.0-2.0*spade::utils::unitary_random());});
+    std::generate(w_perturb.begin(), w_perturb.end(), [&](){return perturb_ampl*(1.0-2.0*spade::utils::unitary_random());});
+    auto rand_perturb_func = [&](const prim_t& val, const point_type& x, const spade::grid::cell_idx_t& ii)
+    {
+        prim_t output = val;
+        real_t yh = x[1]/delta;
+        const real_t shape = (1.0-yh*yh*yh*yh);
+        const auto lbglob = glob[ii.lb()];
+        output.u() += u_perturb[lbglob]*shape;
+        output.v() += v_perturb[lbglob]*shape;
+        output.w() += w_perturb[lbglob]*shape;
+        return output;
+    };
+
+
     spade::algs::fill_array(prim, ini);
+
+    if (ptype == perturb_freq) spade::algs::transform_inplace(prim, freq_perturb_func);
+    if (ptype == perturb_rand) spade::algs::transform_inplace(prim, rand_perturb_func);
+    
+    
 
     real_t ub, rhob;
     calc_u_bulk(prim, air, ub, rhob);
@@ -229,7 +284,7 @@ int main(int argc, char** argv)
         spade::fluid_state::convert_state(w, q, air);
         return q;
     };
-    spade::algs::transform_inplace(prim, rhob_correct);
+    // spade::algs::transform_inplace(prim, rhob_correct);
     calc_u_bulk(prim, air, ub, rhob);
     if (group.isroot())
     {
@@ -296,18 +351,18 @@ int main(int argc, char** argv)
     auto calc_rhs = [&](auto& rhsin, const auto& qin, const auto& tin) -> void
     {
         rhsin = 0.0;
-        spade::pde_algs::flux_div(qin, rhsin, tscheme, dscheme);
         if (wm_enable)
         {
             auto policy = spade::pde_algs::block_flux_all;
-            spade::pde_algs::flux_div(qin, rhsin, policy, boundary, visc_scheme);
+            spade::pde_algs::flux_div(qin, rhsin, tscheme);
+            spade::pde_algs::flux_div(qin, rhsin, policy, boundary, visc_scheme, dscheme);
             wall_model.sample(qin, lam_visc_law);
             wall_model.solve();
             wall_model.apply_flux(rhsin);
         }
         else
         {
-            spade::pde_algs::flux_div(qin, rhsin, visc_scheme);
+            spade::pde_algs::flux_div(qin, rhsin, tscheme, visc_scheme, dscheme);
         }
         spade::pde_algs::source_term(qin, rhsin, source);
     };
@@ -322,6 +377,8 @@ int main(int argc, char** argv)
     spade::time_integration::integrator_t      time_int(axis, alg, q, calc_rhs, boundary_cond, trans);
 
     boundary_cond(time_int.solution(), time0);
+
+    spade::utils::avg_t<real_t> perf;
     
     spade::timing::mtimer_t tmr("advance");
     std::ofstream myfile(hist_file);
@@ -382,6 +439,15 @@ int main(int argc, char** argv)
         time_int.advance();
         tmr.stop ("advance");
         if (group.isroot()) print(tmr);
+
+        auto   dur             = tmr.duration("advance");
+        int    num_points      = cells_in_block[0]*cells_in_block[1]*cells_in_block[2]*num_blocks[0]*num_blocks[1]*num_blocks[2];
+        int    num_ranks       = group.size();
+        real_t updates_per_rank_per_sec = num_points/(num_ranks*dur);
+        if (group.isroot()) print("Updates/core/s:", updates_per_rank_per_sec);
+        perf << updates_per_rank_per_sec;
+        if (group.isroot()) print("Mean:", perf.value(), "   St. dev:", perf.stdev());
+
         if (std::isnan(umax) || std::isnan(rhob))
         {
             if (group.isroot())

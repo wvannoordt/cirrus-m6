@@ -1,0 +1,69 @@
+Grid
+{
+    num_blocks = [16, 2, 6]
+    num_cells  = [32, 64, 16]
+    num_exchg  = [2, 2, 2]
+    dims       = [0.0, 12.0, -1.0, 1.0, 0.0, 5.0]
+}
+Time
+{
+    cfl           = 0.65
+    nt_max        = 140000
+    nt_skip       = 1500
+    ck_skip       = 500
+    output_timing = false
+}
+IO
+{
+	init_file     = none
+    out_dir       = data_c3
+	visc_file     = visc-c3.dat
+	hist_file     = hist-c3.dat
+}
+Fluid
+{
+    couple_dist = 3
+    mu_wall     = 3e-4
+    tau_wall    = 20.06
+    gamma       = 1.4
+    rgas        = 287.15
+    rho_b       = 4.99e-3
+    perturb     = rand
+    const_init  = false
+    wm_enable   = true
+}
+Num
+{
+    eps_p      = 1.6
+    eps_T      = 0.0
+	wale_cw    = 0.25
+}
+WallModel
+{
+    enableTransitionSensor       = false             // Enable Transition Sensor
+    energyEquationType           = ODE               // Energy equation type
+    energyUnderRelaxationODE     = 0.700000          // Relaxation factor for energy ODE
+    fluidCp                      = 1005.000000       // Specific heat
+    fluidPrandtl                 = 0.72              // Laminar Prandtl
+    gasConstant                  = 287.000000        // Gas constant
+    includeMomentumRhs           = false             // Include the parameterized convection term
+    isCompressible               = true              // Use variable density
+    maxIterations                = 100               // Max. iterations
+    momentumEquationType         = ODE               // Momentum equation type
+    momentumUnderRelaxationODE   = 0.200000          // Relaxation factor for momentum ODE
+    rayDim                       = 30                // number of ray points
+    turbPradntl                  = 0.9               // Turbulent Prandtl
+    turbulenceEquationType       = vanDriest         // Turbulence equation type
+    turbulenceUnderRelaxationODE = 0.600000          // Relaxation factor for turbulence ODE
+    vanDriestAPlus               = 17.000000         // van Driest Constant
+    variablePrandtlT             = false             // Variable turbulent prandtl number
+    verboseLevel                 = 0                 // debug output level
+    wallSpacing                  = 1e-6              // Max. iterations
+    wallTemperature              = 100.0             // Wall Temperature
+    suthViscRef                  = 3e-4              // Reference viscosity for viscosity power law
+    suthTRef                     = 100.0             // Reference temperature for viscosity power law
+    viscousLaw                   = PowerLaw          // Viscous law
+    adiabaticWall                = false             // Adiabatic wall
+    yScale                       = trettelLarsson    // y-coordinate scaling
+    solveSkip                    = 3                 // solve skip
+}

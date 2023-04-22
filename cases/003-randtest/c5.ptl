@@ -34,6 +34,7 @@ Fluid
 }
 Num
 {
+    eps_ducr   = 1.0
     eps_p      = 0.0
     eps_T      = 0.0
 	wale_cw    = 0.45

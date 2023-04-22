@@ -8,6 +8,41 @@
 
 #include "PTL.h"
 
+static int ext_nt(const std::string& filename, int n_expc)
+{
+    std::vector<std::string> nums;
+    std::string cur;
+    std::string ints = "0123456789";
+    bool was_int = false;
+    for (const auto c: filename)
+    {
+        bool is_int = ints.find(c) != std::string::npos;
+        if (is_int)
+        {
+            cur += c;
+        }
+        else if (was_int)
+        {
+            nums.push_back(cur);
+            cur = "";
+        }
+        if (is_int) was_int = true;
+        else was_int = false;
+    }
+    if (cur.length() > 0) nums.push_back(cur);
+    for (auto ii: nums)
+    {
+        if (ii.length() == n_expc)
+        {
+            std::istringstream iss(ii);
+            int out;
+            iss >> out;
+            return out;
+        }
+    }
+    return 0;
+}
+
 static inline bool ends_with(std::string const & value, std::string const & ending)
 {
     if (ending.size() > value.size()) return false;
@@ -285,7 +320,7 @@ int main(int argc, char** argv)
         spade::fluid_state::convert_state(w, q, air);
         return q;
     };
-    // spade::algs::transform_inplace(prim, rhob_correct);
+    spade::algs::transform_inplace(prim, rhob_correct);
     calc_u_bulk(prim, air, ub, rhob);
     if (group.isroot())
     {
@@ -294,13 +329,22 @@ int main(int argc, char** argv)
         print("Calculated:", rhob);
     }
     
+    int nt_min = 0;
     if (init_file != "none")
     {
         if (group.isroot()) print("Loading", init_file+"...");
+        if (!std::filesystem::exists(init_file))
+        {
+            if (group.isroot()) print("Invalid init file!");
+            return 140;
+        }
         spade::io::binary_read(init_file, prim);
         if (group.isroot()) print("Init done.");
         grid.exchange_array(prim);
         set_channel_slip(prim, Twall, wm_enable);
+
+        nt_min = ext_nt(init_file, 8);
+        if (group.isroot()) print("Detected nt_min =", nt_min);
     }
     
     spade::state_sensor::ducros_t ducr(eps_ducr);
@@ -385,7 +429,7 @@ int main(int argc, char** argv)
     spade::timing::mtimer_t tmr("advance");
     std::ofstream myfile(hist_file);
     std::ofstream myfile2(visc_file);
-    for (auto nt: range(0, nt_max+1))
+    for (auto nt: range(nt_min, nt_min+nt_max+1))
     {
         const real_t umax   = spade::algs::transform_reduce(time_int.solution(), get_u, max_op);
         calc_u_bulk(time_int.solution(), air, ub, rhob);
@@ -458,7 +502,10 @@ int main(int argc, char** argv)
 				print("Saving crash file...");
             }
             group.sync();
-			spade::io::output_vtk(data_out, "crash", prim_crash);
+            std::string crashbase = "crash" + spade::utils::zfill(nt, 8);
+			spade::io::output_vtk(data_out, crashbase, prim_crash);
+            std::string cbfl = std::string(ck_dir / crashbase) + ".bin";
+            spade::io::binary_write(cbfl, prim_crash);
 			if (group.isroot()) print("See ya later");
             return 155;
         }

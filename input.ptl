@@ -15,7 +15,7 @@ Time
 }
 IO
 {
-	init_file     = none
+	init_file     = data/checkpoint/crash00000010.bin
     out_dir       = data
 	visc_file     = visc.dat
 	hist_file     = hist.dat

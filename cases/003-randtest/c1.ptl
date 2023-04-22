@@ -16,9 +16,9 @@ Time
 IO
 {
 	init_file     = none
-    out_dir       = data_c2
-	visc_file     = visc-c2.dat
-	hist_file     = hist-c2.dat
+    out_dir       = data_c1
+	visc_file     = visc-c1.dat
+	hist_file     = hist-c1.dat
 }
 Fluid
 {
@@ -34,10 +34,9 @@ Fluid
 }
 Num
 {
-    eps_ducr   = 1.0
-    eps_p      = 0.3
+    eps_p      = 0.5
     eps_T      = 0.0
-	wale_cw    = 0.25
+	wale_cw    = 0.35
 }
 WallModel
 {

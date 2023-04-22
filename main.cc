@@ -5,111 +5,9 @@
 
 #include "typedef.h"
 #include "calc_u_bulk.h"
-
+#include "misc.h"
+#include "bc.h"
 #include "PTL.h"
-
-static int ext_nt(const std::string& filename, int n_expc)
-{
-    std::vector<std::string> nums;
-    std::string cur;
-    std::string ints = "0123456789";
-    bool was_int = false;
-    for (const auto c: filename)
-    {
-        bool is_int = ints.find(c) != std::string::npos;
-        if (is_int)
-        {
-            cur += c;
-        }
-        else if (was_int)
-        {
-            nums.push_back(cur);
-            cur = "";
-        }
-        if (is_int) was_int = true;
-        else was_int = false;
-    }
-    if (cur.length() > 0) nums.push_back(cur);
-    for (auto ii: nums)
-    {
-        if (ii.length() == n_expc)
-        {
-            std::istringstream iss(ii);
-            int out;
-            iss >> out;
-            return out;
-        }
-    }
-    return 0;
-}
-
-static inline bool ends_with(std::string const & value, std::string const & ending)
-{
-    if (ending.size() > value.size()) return false;
-    return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
-}
-
-static int ids_impl(int ct, const std::string& v)
-{
-    throw std::invalid_argument( "received invlid value" );
-    return -1;
-}
-template <typename str_t, typename... strs_t> static int ids_impl(int ct, const std::string& v, const str_t& k, const strs_t&... ks)
-{
-    if (k==v) return ct;
-    return ids_impl(ct+1, v, ks...);
-}
-template <typename... strs_t> static int id_search(const std::string& v, const strs_t&... ks)
-{
-    return ids_impl(0, v, ks...);
-}
-
-void set_channel_slip(auto& prims, const auto& twall, const bool wm_enable)
-{
-    const real_t t_wall = 0.1;
-    const auto& grid = prims.get_grid();
-    for (auto lb: range(0, grid.get_num_local_blocks()))
-    {
-        const auto& lb_glob = grid.get_partition().get_global_block(lb);
-        int idc = 0;
-        for (int dir = 2; dir <= 3; ++dir)
-        {
-            const auto& idomain = grid.is_domain_boundary(lb_glob);
-            if (idomain(dir/2, dir%2))
-            {
-                const auto lb_idx = spade::ctrs::expand_index(lb_glob, grid.get_num_blocks());
-                const auto nvec_out = v3i(0,2*idc-1,0);
-                const int j = idc*(grid.get_num_cells(1)-1);
-                auto r1 = range(-grid.get_num_exchange(0), grid.get_num_cells(0) + grid.get_num_exchange(0));
-                auto r2 = range(-grid.get_num_exchange(2), grid.get_num_cells(2) + grid.get_num_exchange(2));
-                for (auto ii: r1*r2)
-                {
-                    for (int nnn = 0; nnn < 2; ++nnn)
-                    {
-                        spade::grid::cell_idx_t i_d(ii[0], j-(nnn+0)*nvec_out[1], ii[1], lb);
-                        spade::grid::cell_idx_t i_g(ii[0], j+(nnn+1)*nvec_out[1], ii[1], lb);
-                        prim_t q_d, q_g;
-                        for (auto n: range(0,5)) q_d[n] = prims(n, i_d[0], i_d[1], i_d[2], i_d[3]);
-                        const auto x_g = grid.get_comp_coords(i_g);
-                        const auto x_d = grid.get_comp_coords(i_d);
-                        const auto n_g = calc_normal_vector(grid.coord_sys(), x_g, i_g, 1);
-                        const auto n_d = calc_normal_vector(grid.coord_sys(), x_d, i_d, 1);
-                        q_g.p()   =  q_d.p();
-                        q_g.T()   =  q_d.T();
-                        if (!wm_enable) q_g.T()   =  2.0*twall - q_d.T();
-                        q_g.u()   =  q_d.u();
-                        if (!wm_enable) q_g.u()   = -q_d.u();
-                        q_g.v()   = -q_d.v()*n_d[1]/n_g[1];
-                        q_g.w()   =  q_d.w();
-						if (!wm_enable) q_g.w()   = -q_d.w();
-                        for (auto n: range(0,5)) prims(n, i_g[0], i_g[1], i_g[2], i_g[3]) = q_g[n];
-                    }
-                }
-            }
-            ++idc;
-        }
-    }
-}
 
 int main(int argc, char** argv)
 {
@@ -176,6 +74,9 @@ int main(int argc, char** argv)
     std::string        out_dir   = input["IO"]["out_dir"];
 	std::string      hist_file   = input["IO"]["hist_file"];
 	std::string      visc_file   = input["IO"]["visc_file"];
+    bool             output_ducr = input["IO"]["output_ducr"];
+    bool             output_sgs  = input["IO"]["output_sgs"];
+    
     
     spade::coords::identity<real_t> coords;
     
@@ -207,10 +108,12 @@ int main(int argc, char** argv)
     
     prim_t fill1 = 0.0;
     flux_t fill2 = 0.0;
+    real_t fill3 = 0.0;
     
     spade::grid::grid_array prim       (grid, fill1);
 	spade::grid::grid_array prim_crash (grid, fill1);
-    spade::grid::grid_array rhs (grid, fill2);
+    spade::grid::grid_array rhs        (grid, fill2);
+    spade::grid::grid_array scalar     (grid, fill3);
     
     spade::fluid_state::ideal_gas_t<real_t> air;
     air.R = rgas;
@@ -465,6 +368,37 @@ int main(int argc, char** argv)
             std::string filename = "prims"+nstr;
             spade::io::output_vtk(data_out, filename, grid, time_int.solution());
             if (group.isroot()) print("Done.");
+            auto output_scalar = [&](const auto& kern, const std::string& scalar_name)
+            {
+                spade::algs::transform_to(time_int.solution(), scalar, kern);
+                std::string filename_scl = scalar_name + nstr;
+                spade::io::output_vtk(data_out, filename_scl, scalar);
+            };
+            if (output_ducr)
+            {
+                if (group.isroot()) print("Output sensor...");
+                using sens_t = decltype(ducr);
+                const auto kern = spade::omni::make_kernel([](const sens_t& sens, const auto& info)
+                {
+                    return sens.get_sensor(info);
+                }, ducr);
+                output_scalar(kern, "sensor");
+                if (group.isroot()) print("Done");
+            }
+            if (output_sgs)
+            {
+                if (group.isroot()) print("Output sensor...");
+                using lam_t  = decltype(lam_visc_law);
+                using turb_t = decltype(eddy_visc);
+                const auto kern = spade::omni::make_kernel([&](const lam_t& lam, const turb_t& turb, const auto& info)
+                {
+                    auto mut = turb.get_mu_t(info);
+                    auto mu  = lam.get_visc(info);
+                    return mut/mu;
+                }, lam_visc_law, eddy_visc);
+                output_scalar(kern, "turbratio");
+                if (group.isroot()) print("Done");
+            }
         }
         if (nt%checkpoint_skip == 0)
         {

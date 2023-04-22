@@ -16,9 +16,9 @@ Time
 IO
 {
 	init_file     = none
-    out_dir       = data_c3
-	visc_file     = visc-c3.dat
-	hist_file     = hist-c3.dat
+    out_dir       = data
+	visc_file     = visc.dat
+	hist_file     = hist.dat
 }
 Fluid
 {
@@ -34,6 +34,7 @@ Fluid
 }
 Num
 {
+    eps_ducr   = 1.0
     eps_p      = 1.6
     eps_T      = 0.0
 	wale_cw    = 0.25

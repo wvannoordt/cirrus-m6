@@ -132,6 +132,7 @@ int main(int argc, char** argv)
     real_t   fluidCp       = input["WallModel"]["fluidCp"];
     
     
+    real_t             eps_ducr  = input["Num"]["eps_ducr"];
     real_t                eps_p  = input["Num"]["eps_p"];
     real_t                eps_T  = input["Num"]["eps_T"];
 	real_t                cw     = input["Num"]["wale_cw"];
@@ -302,8 +303,9 @@ int main(int argc, char** argv)
         set_channel_slip(prim, Twall, wm_enable);
     }
     
+    spade::state_sensor::ducros_t ducr(eps_ducr);
     spade::convective::totani_lr        tscheme(air);
-    spade::convective::pressure_diss_lr dscheme(air, eps_p, eps_T);
+    spade::convective::pressure_diss_lr dscheme(air, ducr, eps_p, eps_T);
     spade::viscous::visc_lr             visc_scheme(visc_law, air);
     
 

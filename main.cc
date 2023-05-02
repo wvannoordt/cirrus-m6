@@ -69,6 +69,7 @@ int main(int argc, char** argv)
     real_t                eps_p  = input["Num"]["eps_p"];
     real_t                eps_T  = input["Num"]["eps_T"];
 	real_t                cw     = input["Num"]["wale_cw"];
+    bool               smooth_wm = input["Num"]["smooth_wm"];
 
     std::string        init_file = input["IO"]["init_file"];
     std::string        out_dir   = input["IO"]["out_dir"];
@@ -306,6 +307,7 @@ int main(int argc, char** argv)
             spade::pde_algs::flux_div(qin, rhsin, policy, boundary, visc_scheme, dscheme);
             wall_model.sample(qin, lam_visc_law);
             wall_model.solve();
+            if (smooth_wm) wall_model.smooth();
             wall_model.apply_flux(rhsin);
         }
         else

@@ -15,6 +15,8 @@ Time
 }
 IO
 {
+	output_sgs    = false
+	output_ducr   = false
 	init_file     = none
     out_dir       = data_c6
 	visc_file     = visc-c6.dat
@@ -37,7 +39,7 @@ Num
     eps_ducr   = 1.0
     eps_p      = 0.5
     eps_T      = 0.0
-	wale_cw    = 0.45
+	wale_cw    = 0.05
 }
 WallModel
 {

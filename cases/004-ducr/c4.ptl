@@ -15,6 +15,8 @@ Time
 }
 IO
 {
+	output_sgs    = false
+	output_ducr   = false
 	init_file     = none
     out_dir       = data_c4
 	visc_file     = visc-c4.dat

@@ -207,10 +207,9 @@ int main(int argc, char** argv)
 
     if (ptype == perturb_freq) spade::algs::transform_inplace(prim, freq_perturb_func);
     if (ptype == perturb_rand) spade::algs::transform_inplace(prim, rand_perturb_func);
-    
-    
 
-    real_t ub, rhob;
+	
+	real_t ub, rhob;
     calc_u_bulk(prim, air, ub, rhob);
     real_t ratio = rho_b/rhob;
 

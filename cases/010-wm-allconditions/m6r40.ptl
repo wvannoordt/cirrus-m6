@@ -8,7 +8,7 @@ Grid
 Time
 {
     cfl           = 0.65
-    nt_max        = 140000
+    nt_max        = 150000
     nt_skip       = 1500
     ck_skip       = 500
     output_timing = false
@@ -17,32 +17,33 @@ IO
 {
 	output_sgs    = false
 	output_ducr   = false
-	init_file     = none
-    out_dir       = data_c1
-	visc_file     = visc-c1.dat
-	hist_file     = hist-c1.dat
+	init_file     = ck/m6r40/check00289500.bin
+    out_dir       = data-m6r40
+	visc_file     = visc-m6r40.dat
+	hist_file     = hist-m6r40.dat
 }
 Fluid
 {
-    couple_dist = 3
-    mu_wall     = 3e-4
-    tau_wall    = 20.06
+    couple_dist = 6
+    mu_wall     = 1.5e-4
+    tau_wall    = 16.46
     gamma       = 1.4
     rgas        = 287.15
     rho_b       = 4.99e-3
     perturb     = rand
     const_init  = false
-    wm_enable   = false
+    wm_enable   = true
 }
 Num
 {
     eps_ducr   = 1.0
-    eps_p      = 1.5
-    eps_T      = 0.0
-	wale_cw    = 0.0
+    eps_p      = 2.5
+    eps_T      = 3.5
+	wale_cw    = 0.05
 }
 WallModel
 {
+	solveSkip                    = 3
     enableTransitionSensor       = false             // Enable Transition Sensor
     energyEquationType           = ODE               // Energy equation type
     energyUnderRelaxationODE     = 0.700000          // Relaxation factor for energy ODE
@@ -60,7 +61,7 @@ WallModel
     turbulenceUnderRelaxationODE = 0.600000          // Relaxation factor for turbulence ODE
     vanDriestAPlus               = 17.000000         // van Driest Constant
     variablePrandtlT             = false             // Variable turbulent prandtl number
-    verboseLevel                 = 0                 // debug output level
+    verboseLevel                 = 1                 // debug output level
     wallSpacing                  = 1e-6              // Max. iterations
     wallTemperature              = 100.0             // Wall Temperature
     suthViscRef                  = 3e-4              // Reference viscosity for viscosity power law
